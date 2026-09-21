@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SS Agarwal Cloth Merchant</title>
+
+<!-- jsPDF is used to create the actual bill PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#eef4ff,#f8f5ff);color:#24324a}
+.container{width:95%;max-width:1100px;margin:20px auto;background:#fff;padding:25px;border-radius:14px;box-shadow:0 8px 30px rgba(34,55,90,.14);border:1px solid #e1e8f5}
+.header{text-align:center;border-bottom:3px solid #3f51b5;padding:20px 15px 15px;margin-bottom:20px;background:linear-gradient(135deg,#3949ab,#5e35b1);color:#fff;border-radius:12px}
+.header h1{margin:0;font-size:30px;letter-spacing:1px}.header p{margin:5px 0;color:#e8eaf6}.header p:last-child{font-weight:bold;color:#fff}
+.section-title{font-size:20px;font-weight:bold;margin-top:20px;margin-bottom:12px;color:#303f9f;border-left:5px solid #ff9800;padding:9px 12px;background:#f4f6ff;border-radius:7px}
+.customer-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;padding:4px}
+.input-group{display:flex;flex-direction:column}.input-group label{font-weight:bold;margin-bottom:6px;color:#37474f}
+input,select{width:100%;padding:11px;border:1px solid #c5cee0;border-radius:7px;font-size:15px;outline:none;background:#fbfcff;color:#263238;transition:border-color .2s,box-shadow .2s,background .2s}
+input:focus,select:focus{border-color:#5c6bc0;box-shadow:0 0 0 3px rgba(92,107,192,.13);background:#fff}
+input::placeholder{color:#9aa6b8}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;appearance:none;margin:0;display:none}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.cloth-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;background:#fafbff;border:1px solid #e1e7f2;padding:15px;border-radius:10px}
+button{border:none;border-radius:7px;padding:11px 18px;font-size:15px;font-weight:bold;cursor:pointer;transition:transform .15s,box-shadow .15s,filter .15s}
+button:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,.12);filter:brightness(.97)}
+.add-btn{background:#3949ab;color:white}.add-btn:hover{background:#303f9f}
+.generate-btn{background:#00897b;color:white}.generate-btn:hover{background:#00796b}
+.table-container{overflow-x:auto;margin-top:20px;border-radius:9px}
+table{width:100%;border-collapse:collapse;min-width:650px;background:#fff}
+th,td{border:1px solid #d8deea;padding:10px;text-align:center}th{background:linear-gradient(90deg,#3949ab,#5e35b1);color:white;font-weight:bold}tbody tr:nth-child(even){background:#f8f9ff}tbody tr:hover{background:#eef2ff}
+.remove-btn{background:#e53935;color:white;padding:6px 10px}.remove-btn:hover{background:#c62828}
+.bill{margin-top:30px;border:2px solid #c5cae9;padding:20px;display:none;background:#fff;border-radius:12px;box-shadow:0 5px 18px rgba(63,81,181,.10)}
+.bill-header{text-align:center;border-bottom:2px solid #5c6bc0;padding-bottom:12px;margin-bottom:15px;background:#f7f8ff;border-radius:9px;padding-top:12px}
+.bill-header h2{margin:0;color:#283593}.bill-header p{margin:5px 0;color:#455a64}.bill-header p:last-child{font-weight:bold;color:#5d4037}
+.bill-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;background:#fffaf2;border:1px solid #ffe0b2;padding:12px;border-radius:8px}
+.bill-info p{margin:3px 0}.bill-table{min-width:600px}
+.bill-table th{background:#ff9800;color:#fff}.bill-table tbody tr:nth-child(even){background:#fffaf2}
+.amount-section{width:100%;max-width:500px;margin-left:auto;margin-top:20px;background:#fafbff;border:1px solid #e0e5f0;padding:12px;border-radius:9px}
+.amount-row{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid #e0e4ec;color:#455a64}.amount-row strong{color:#263238}
+.grand-total{font-size:21px;font-weight:bold;border:2px solid #f59e0b!important;padding:12px 10px;margin-top:8px;background:#fff3c7!important;color:#8a4b08!important;border-radius:7px}.grand-total strong{color:#8a4b08}
+.thank-you{display:none}
+.action-buttons{display:flex;justify-content:center;gap:12px;margin-top:20px;flex-wrap:wrap}
+.print-btn{background:#1976d2;color:white}.pdf-btn{background:#7b1fa2;color:white}
+.whatsapp-btn{background:#25D366;color:white}.clear-btn{background:#e53935;color:white}
+.message{margin-top:12px;font-weight:bold;text-align:center;padding:10px;border-radius:7px}.error{color:#b71c1c;background:#ffebee;border:1px solid #ffcdd2}.success{color:#1b5e20;background:#e8f5e9;border:1px solid #c8e6c9}
+
+@media(max-width:700px){
+.container{width:98%;padding:15px}.header h1{font-size:23px}
+.customer-grid,.cloth-grid{grid-template-columns:1fr}.bill-info{grid-template-columns:1fr}
+.amount-section{max-width:100%}button{width:100%}
+}
+
+@media print{
+body{background:white;color:#000}.container{width:100%;margin:0;padding:0;box-shadow:none;border:none}
+.header,.input-section,.action-buttons,.section-title,.message{display:none!important}
+.bill{display:block!important;border:none;padding:10px;margin:0;box-shadow:none;background:#fff}
+.bill-header{display:block!important;text-align:center;border-bottom:1px solid #222;padding-bottom:10px;margin-bottom:15px;background:#fff}
+.bill-header h2{font-size:20px;margin:0;color:#000}.bill-header p{margin:4px 0;color:#000}
+.bill-info{background:#fff;border:none;padding:0}
+.bill-table th{background:#fff;color:#000}
+.amount-section{background:#fff;border:none;padding:0}
+.grand-total{background:#fff3c7!important;border:2px solid #f59e0b!important;padding:12px!important}
+.bill-thankyou-page{page-break-before:avoid;break-before:avoid;display:block!important;height:auto}
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div class="header">
+<h1>SS AGARWAL CLOTH MERCHANT</h1>
+<p>Quality Clothes at the Best Price</p>
+<p>Mobile: 98765 43210</p>
+</div>
+
+<div class="input-section">
+
+<div class="section-title">Customer Details</div>
+<div class="customer-grid">
+
+<div class="input-group">
+<label>Customer Name</label>
+<input type="text" id="customerName" placeholder="Enter customer name">
+</div>
+
+<div class="input-group">
+<label>Customer Mobile Number</label>
+<input type="tel" id="customerMobile" placeholder="Enter 10-digit mobile number"
+maxlength="10" inputmode="numeric"
+oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+</div>
+
+<div class="input-group">
+<label>Invoice Number</label>
+<input type="text" id="invoiceNumber" placeholder="Example: INV001">
+</div>
+
+<div class="input-group">
+<label>Date</label>
+<input type="text" id="billDate" placeholder="DD/MM/YYYY."
+maxlength="11" inputmode="numeric" autocomplete="off">
+</div>
+
+</div>
+
+<div class="section-title">Add Cloth</div>
+<div class="cloth-grid">
+
+<div class="input-group">
+<label>Cloth ID</label>
+<select id="clothId">
+<option value="">Select Cloth ID</option>
+<option value="101">101 - Shirt</option>
+<option value="102">102 - T-Shirt</option>
+<option value="103">103 - Jeans Pant</option>
+<option value="104">104 - Night Pant</option>
+<option value="105">105 - Normal Sarees</option>
+<option value="106">106 - Silk Sarees</option>
+<option value="107">107 - Synthetic Sarees</option>
+<option value="108">108 - Shorts</option>
+<option value="109">109 - Tissues Sarees</option>
+<option value="110">110 - Formal Pant</option>
+</select>
+</div>
+
+<div class="input-group">
+<label>Quantity</label>
+<input type="number" id="quantity" min="1" inputmode="numeric" placeholder="Enter quantity" autocomplete="off">
+</div>
+
+<div class="input-group">
+<label>Price per Cloth</label>
+<input type="number" id="price" min="0" step="0.01" placeholder="Enter price">
+</div>
+
+<button class="add-btn" onclick="addCloth()">➕ Add Cloth</button>
+<button class="generate-btn" onclick="generateBill()">🧾 Generate Bill</button>
+</div>
+
+<div id="message" class="message"></div>
+
+<div class="table-container">
+<table>
+<thead><tr>
+<th>ID</th><th>Cloth Name</th><th>Quantity</th><th>Price</th><th>Amount</th><th>Action</th>
+</tr></thead>
+<tbody id="cartBody"></tbody>
+</table>
+</div>
+</div>
+
+<!-- BILL -->
+<div class="bill" id="bill">
+
+<div class="bill-header">
+<h2>SS AGARWAL CLOTH MERCHANT</h2>
+<p>Quality Cloths</p>
+<p>Phone: 98765 43210</p>
+<p>GST No : 29AGWPA4433F1ZA</p>
+</div>
+
+<div class="bill-info">
+<p><strong>Invoice Number:</strong> <span id="billInvoice"></span></p>
+<p><strong>Date:</strong> <span id="billDateDisplay"></span></p>
+<p><strong>Customer Name:</strong> <span id="billCustomer"></span></p>
+<p><strong>Customer Mobile:</strong> <span id="billMobile"></span></p>
+</div>
+
+<div class="table-container">
+<table class="bill-table">
+<thead><tr>
+<th>ID</th><th>Cloth</th><th>Qty</th><th>Price</th><th>Amount</th>
+</tr></thead>
+<tbody id="billItems"></tbody>
+</table>
+</div>
+
+<div class="amount-section">
+
+<div class="amount-row"><span>Total Amount</span>
+<strong>₹<span id="totalAmount">0.00</span></strong></div>
+
+<div class="amount-row"><span>Discount</span>
+<strong>₹<span id="discount">0.00</span></strong></div>
+
+<div class="amount-row"><span>Taxable Amount</span>
+<strong>₹<span id="taxableAmount">0.00</span></strong></div>
+
+<div class="amount-row"><span>CGST @ 2.5%</span>
+<strong>₹<span id="cgst">0.00</span></strong></div>
+
+<div class="amount-row"><span>SGST @ 2.5%</span>
+<strong>₹<span id="sgst">0.00</span></strong></div>
+
+<div class="amount-row"><span>Total GST</span>
+<strong>₹<span id="totalGst">0.00</span></strong></div>
+<span id="gst" aria-hidden="true" style="display:none">0.00</span>
+
+<div class="amount-row"><span>Amount Including GST</span>
+<strong>₹<span id="amountIncludingGst">0.00</span></strong></div>
+
+<div class="amount-row"><span>Round Off</span>
+<strong>₹<span id="roundOff">0.00</span></strong></div>
+
+<div class="amount-row grand-total">
+<span>GRAND TOTAL</span>
+<strong>₹<span id="grandTotal">0.00</span></strong>
+</div>
+
+</div>
+
+<!-- SECOND PAGE ONLY -->
+<div class="bill-thankyou-page">
+<div class="thank-you" style="display:block;text-align:center;padding-top:280px;font-size:28px;line-height:2.2;">
+<div>THANK YOU!</div>
+<div>VISIT AGAIN!</div>
+</div>
+</div>
+
+</div>
+
+<div class="action-buttons">
+<button class="print-btn" onclick="printBill()">🖨 PRINT BILL</button>
+<button class="pdf-btn" onclick="downloadBillPDF()">📄 DOWNLOAD BILL PDF</button>
+<button class="whatsapp-btn" onclick="sendWhatsAppMessage()">💬 SEND WHATSAPP MESSAGE</button>
+<button class="whatsapp-btn" onclick="sendPDFToWhatsApp()">📱 SEND PDF TO WHATSAPP</button>
+<button class="clear-btn" onclick="clearAll()">🗑 NEW / CLEAR BILL</button>
+</div>
+
+</div>
+
+<script>
+const clothNames={
+101:"Shirt",102:"T-Shirt",103:"Jeans Pant",104:"Night Pant",
+105:"Normal Sarees",106:"Silk Sarees",107:"Synthetic Sarees",
+108:"Shorts",109:"Tissues Sarees",110:"Formal Pant"
+};
+
+let cart=[];
+
+/* DATE: DD -> DD/ -> DD/MM/ -> DD/MM/YYYY. */
+document.getElementById("billDate").addEventListener("input",function(){
+let numbers=this.value.replace(/\D/g,"").substring(0,8);
+let formatted="";
+if(numbers.length>=1)formatted=numbers.substring(0,2);
+if(numbers.length>=3)formatted=numbers.substring(0,2)+"/"+numbers.substring(2,4);
+if(numbers.length>=5)formatted=numbers.substring(0,2)+"/"+numbers.substring(2,4)+"/"+numbers.substring(4,8);
+if(numbers.length===8)formatted+=".";
+this.value=formatted;
+});
+
+/* Keep the typed quantity and unit price synchronized with the calculated item amount. */
+function getCurrentItemAmount(){
+const quantity=parseInt(document.getElementById("quantity").value,10);
+const price=parseFloat(document.getElementById("price").value);
+if(!Number.isFinite(quantity)||quantity<0||!Number.isFinite(price)||price<0)return 0;
+return quantity*price;
+}
+
+function addCloth(){
+const id=parseInt(document.getElementById("clothId").value);
+const quantity=parseInt(document.getElementById("quantity").value);
+const price=parseFloat(document.getElementById("price").value);
+const message=document.getElementById("message");
+
+message.innerHTML="";message.className="message";
+
+
+if(!clothNames[id]){
+message.innerHTML="Please select a valid Cloth ID.";
+message.className="message error";return;
+}
+
+if(isNaN(quantity)||quantity<=0){
+message.innerHTML="Please enter a valid quantity.";
+message.className="message error";return;
+}
+
+if(isNaN(price)||price<0){
+message.innerHTML="Please enter a valid price.";
+message.className="message error";return;
+}
+
+cart.push({id:id,name:clothNames[id],quantity:quantity,price:price});
+updateCart();
+
+message.innerHTML=clothNames[id]+" added successfully.";
+message.className="message success";
+
+document.getElementById("quantity").value="";
+document.getElementById("price").value="";
+document.getElementById("clothId").value="";
+}
+
+function updateCart(){
+const body=document.getElementById("cartBody");
+body.innerHTML="";
+
+cart.forEach((item,index)=>{
+const amount=item.quantity*item.price;
+const row=document.createElement("tr");
+
+row.innerHTML=
+`<td>${item.id}</td>
+<td>${item.name}</td>
+<td>${item.quantity}</td>
+<td>₹${item.price.toFixed(2)}</td>
+<td>₹${amount.toFixed(2)}</td>
+<td><button class="remove-btn" onclick="removeItem(${index})">Remove</button></td>`;
+
+body.appendChild(row);
+});
+}
+
+function removeItem(index){
+cart.splice(index,1);
+updateCart();
+}
+
+async function generateBill(){
+
+const customerName=document.getElementById("customerName").value.trim();
+const customerMobile=document.getElementById("customerMobile").value.trim();
+const invoiceNumber=document.getElementById("invoiceNumber").value.trim();
+const billDate=document.getElementById("billDate").value.trim();
+const message=document.getElementById("message");
+
+if(customerName===""){
+message.innerHTML="Please enter customer name.";
+message.className="message error";return;
+}
+
+if(customerMobile.length!==10||!/^[0-9]{10}$/.test(customerMobile)){
+message.innerHTML="Please enter a valid 10-digit customer mobile number.";
+message.className="message error";return;
+}
+
+if(invoiceNumber===""){
+message.innerHTML="Please enter invoice number.";
+message.className="message error";return;
+}
+
+if(!/^\d{2}\/\d{2}\/\d{4}\.$/.test(billDate)){
+message.innerHTML="Please enter date in DD/MM/YYYY format.";
+message.className="message error";return;
+}
+
+if(cart.length===0){
+message.innerHTML="Please add at least one cloth before generating the bill.";
+message.className="message error";return;
+}
+
+try{
+
+const response=await fetch("/calculate",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({customerName:customerName,invoiceNumber:invoiceNumber,date:billDate,items:cart})
+});
+
+if(!response.ok)throw new Error("Server error");
+
+const data=await response.json();
+
+document.getElementById("billCustomer").innerText=data.customerName;
+document.getElementById("billMobile").innerText=customerMobile;
+document.getElementById("billInvoice").innerText=invoiceNumber;
+document.getElementById("billDateDisplay").innerText=billDate;
+
+const billItems=document.getElementById("billItems");
+billItems.innerHTML="";
+
+cart.forEach(item=>{
+const amount=item.quantity*item.price;
+const row=document.createElement("tr");
+
+row.innerHTML=
+`<td>${item.id}</td>
+<td>${item.name}</td>
+<td>${item.quantity}</td>
+<td>₹${item.price.toFixed(2)}</td>
+<td>₹${amount.toFixed(2)}</td>`;
+
+billItems.appendChild(row);
+});
+
+const total=Number(data.total);
+const discount=Number(data.discount);
+const taxableAmount=Number(data.taxableAmount);
+const cgst=Number(data.cgst);
+const sgst=Number(data.sgst);
+const gst=Number(data.gst);
+
+/* Backend finalAmount already includes GST */
+const amountIncludingGst=Number(data.finalAmount);
+
+const grandTotal=Math.round(amountIncludingGst);
+const roundOff=grandTotal-amountIncludingGst;
+
+document.getElementById("totalAmount").innerText=total.toFixed(2);
+document.getElementById("discount").innerText=discount.toFixed(2);
+document.getElementById("taxableAmount").innerText=taxableAmount.toFixed(2);
+document.getElementById("cgst").innerText=cgst.toFixed(2);
+document.getElementById("sgst").innerText=sgst.toFixed(2);
+document.getElementById("gst").innerText=gst.toFixed(2);
+document.getElementById("totalGst").innerText=gst.toFixed(2);
+document.getElementById("amountIncludingGst").innerText=amountIncludingGst.toFixed(2);
+document.getElementById("roundOff").innerText=roundOff.toFixed(2);
+document.getElementById("grandTotal").innerText=grandTotal.toFixed(2);
+
+document.getElementById("bill").style.display="block";
+document.getElementById("bill").scrollIntoView({behavior:"smooth"});
+
+message.innerHTML="Bill generated successfully.";
+message.className="message success";
+
+}catch(error){
+console.error(error);
+message.innerHTML="Unable to connect to the billing server.";
+message.className="message error";
+}
+}
+
+/* Create a clean PDF of the generated bill */
+function createBillPDF(){
+
+if(document.getElementById("bill").style.display==="none" ||
+document.getElementById("bill").style.display===""){
+alert("Please generate the bill first.");
+return null;
+}
+
+const {jsPDF}=window.jspdf;
+const doc=new jsPDF();
+
+const customerName=document.getElementById("billCustomer").innerText;
+const mobile=document.getElementById("billMobile").innerText;
+const invoice=document.getElementById("billInvoice").innerText;
+const date=document.getElementById("billDateDisplay").innerText;
+
+/* Header */
+doc.setFont("helvetica","bold");
+doc.setFontSize(18);
+doc.text("SS AGARWAL CLOTH MERCHANT",105,18,{align:"center"});
+
+doc.setFont("helvetica","normal");
+doc.setFontSize(10);
+doc.text("Quality Cloths",105,25,{align:"center"});
+doc.text("Phone: 98765 43210",105,32,{align:"center"});
+doc.text("GST No : 29AGWPA4433F1ZA",105,39,{align:"center"});
+
+doc.line(15,44,195,44);
+
+/* Customer details */
+doc.setFont("helvetica","normal");
+doc.setFontSize(10);
+
+doc.text("Invoice Number: "+invoice,15,54);
+doc.text("Date: "+date,135,54);
+doc.text("Customer Name: "+customerName,15,62);
+doc.text("Customer Mobile: "+mobile,135,62);
+
+doc.line(15,68,195,68);
+
+/* Items */
+let y=76;
+
+doc.setFont("helvetica","bold");
+doc.text("ID",18,y);
+doc.text("Cloth",45,y);
+doc.text("Qty",115,y);
+doc.text("Price",140,y);
+doc.text("Amount",170,y);
+
+doc.line(15,y+3,195,y+3);
+
+y+=10;
+
+doc.setFont("helvetica","normal");
+
+cart.forEach(item=>{
+const amount=item.quantity*item.price;
+
+doc.text(String(item.id),18,y);
+doc.text(item.name,45,y);
+doc.text(String(item.quantity),115,y);
+doc.text("Rs. "+item.price.toFixed(2),140,y);
+doc.text("Rs. "+amount.toFixed(2),170,y);
+
+y+=8;
+});
+
+doc.line(15,y,195,y);
+y+=10;
+
+/* Amounts */
+const rows=[
+["Total Amount",document.getElementById("totalAmount").innerText],
+["Discount",document.getElementById("discount").innerText],
+["Taxable Amount",document.getElementById("taxableAmount").innerText],
+["CGST @ 2.5%",document.getElementById("cgst").innerText],
+["SGST @ 2.5%",document.getElementById("sgst").innerText],
+["Total GST",document.getElementById("totalGst").innerText],
+["Amount Including GST",document.getElementById("amountIncludingGst").innerText],
+["Round Off",document.getElementById("roundOff").innerText]
+];
+
+doc.setFontSize(10);
+
+rows.forEach(row=>{
+doc.text(row[0],125,y);
+doc.text("Rs. "+row[1],190,y,{align:"right"});
+y+=7;
+});
+
+doc.setFont("helvetica","bold");
+doc.setFontSize(13);
+doc.line(115,y,195,y);
+y+=9;
+doc.setFillColor(255,243,199);
+doc.rect(115,y-7,80,11,"F");
+doc.setTextColor(146,64,14);
+doc.text("GRAND TOTAL",125,y);
+doc.text("Rs. "+document.getElementById("grandTotal").innerText,190,y,{align:"right"});
+doc.setTextColor(0,0,0);
+
+/* Thank you */
+y+=12;
+doc.setFont("helvetica","bold");
+doc.setFontSize(11);
+doc.text("THANK YOU!  VISIT AGAIN!",105,y,{align:"center"});
+
+return doc;
+}
+
+/* Download the actual PDF */
+function downloadBillPDF(){
+
+const doc=createBillPDF();
+
+if(!doc)return;
+
+const invoice=document.getElementById("billInvoice").innerText || "Bill";
+
+doc.save("Bill_"+invoice+".pdf");
+}
+
+/* Send the complete bill details as a WhatsApp message. */
+function sendWhatsAppMessage(){
+
+const bill=document.getElementById("bill");
+
+if(bill.style.display==="none"||bill.style.display===""){
+alert("Please generate the bill first.");
+return;
+}
+
+const customerMobile=document.getElementById("customerMobile").value.trim();
+
+if(!/^[0-9]{10}$/.test(customerMobile)){
+alert("Please enter a valid 10-digit customer mobile number.");
+return;
+}
+
+const customerName=document.getElementById("billCustomer").innerText;
+const invoice=document.getElementById("billInvoice").innerText;
+const date=document.getElementById("billDateDisplay").innerText;
+
+let itemsText="";
+
+cart.forEach((item,index)=>{
+const amount=item.quantity*item.price;
+itemsText += (index+1)+". "+item.name+
+" | Qty: "+item.quantity+
+" | Price: ₹"+item.price.toFixed(2)+
+" | Amount: ₹"+amount.toFixed(2)+"\n";
+});
+
+const messageText=
+"SS AGARWAL CLOTH MERCHANT\n"+
+"Quality Cloths\n"+
+"GST No : 29AGWPA4433F1ZA\n\n"+
+"Invoice No: "+invoice+"\n"+
+"Date: "+date+"\n"+
+"Customer: "+customerName+"\n\n"+
+"ITEMS\n"+
+itemsText+"\n"+
+"Total Amount: ₹"+document.getElementById("totalAmount").innerText+"\n"+
+"Discount: ₹"+document.getElementById("discount").innerText+"\n"+
+"Taxable Amount: ₹"+document.getElementById("taxableAmount").innerText+"\n"+
+"CGST @ 2.5%: ₹"+document.getElementById("cgst").innerText+"\n"+
+"SGST @ 2.5%: ₹"+document.getElementById("sgst").innerText+"\n"+
+"Total GST: ₹"+document.getElementById("totalGst").innerText+"\n"+
+"Amount Including GST: ₹"+document.getElementById("amountIncludingGst").innerText+"\n"+
+"Round Off: ₹"+document.getElementById("roundOff").innerText+"\n"+
+"GRAND TOTAL: ₹"+document.getElementById("grandTotal").innerText+"\n\n"+
+"THANK YOU! VISIT AGAIN!";
+
+const whatsappURL=
+"https://wa.me/91"+customerMobile+
+"?text="+encodeURIComponent(messageText);
+
+window.open(whatsappURL,"_blank");
+}
+
+/*
+ * Send the ACTUAL PDF through the phone's share sheet.
+ * On supported mobile browsers, WhatsApp can be selected
+ * as the sharing app. The customer number is also included
+ * in the WhatsApp text.
+ *
+ * If file sharing is not supported by the browser, the PDF
+ * is downloaded and WhatsApp is opened with a message.
+ */
+async function sendPDFToWhatsApp(){
+
+const doc=createBillPDF();
+
+if(!doc)return;
+
+const customerMobile=document.getElementById("customerMobile").value.trim();
+
+if(customerMobile.length!==10){
+alert("Please enter a valid 10-digit customer mobile number.");
+return;
+}
+
+const invoice=document.getElementById("billInvoice").innerText || "Bill";
+const customerName=document.getElementById("billCustomer").innerText;
+
+const pdfBlob=doc.output("blob");
+const file=new File([pdfBlob],"Bill_"+invoice+".pdf",{type:"application/pdf"});
+
+const shareText=
+"Hello "+customerName+",\n\n"+
+"Please find your bill attached.\n"+
+"Invoice: "+invoice+"\n"+
+"Thank you!";
+
+if(navigator.share && navigator.canShare){
+
+try{
+
+if(navigator.canShare({files:[file]})){
+
+await navigator.share({
+files:[file],
+text:shareText
+});
+
+return;
+}
+
+}catch(error){
+
+if(error.name==="AbortError"){
+return;
+}
+
+}
+}
+
+/*
+ * Fallback:
+ * download the PDF and open WhatsApp.
+ * The user can attach the downloaded PDF.
+ */
+doc.save("Bill_"+invoice+".pdf");
+
+const whatsappURL=
+"https://wa.me/91"+customerMobile+
+"?text="+encodeURIComponent(
+shareText+
+"\n\nThe PDF has been downloaded. Please attach it here."
+);
+
+window.open(whatsappURL,"_blank");
+
+alert(
+"The PDF has been downloaded. WhatsApp has been opened. "+
+"Please attach the downloaded PDF and press Send."
+);
+}
+
+function printBill(){
+
+const bill=document.getElementById("bill");
+
+if(bill.style.display==="none"||bill.style.display===""){
+alert("Please generate the bill first.");
+return;
+}
+
+window.print();
+}
+
+function clearAll(){
+
+cart=[];
+
+document.getElementById("customerName").value="";
+document.getElementById("customerMobile").value="";
+document.getElementById("invoiceNumber").value="";
+document.getElementById("billDate").value="";
+document.getElementById("clothId").value="";
+document.getElementById("quantity").value="";
+document.getElementById("price").value="";
+
+document.getElementById("cartBody").innerHTML="";
+document.getElementById("billItems").innerHTML="";
+document.getElementById("bill").style.display="none";
+document.getElementById("message").innerHTML="";
+
+window.scrollTo({top:0,behavior:"smooth"});
+}
+</script>
+</body>
+</html>
